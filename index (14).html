@@ -1,0 +1,697 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Jenze - A futuristic platform for study resources, tech insights, and educational content. Experience a neon-inspired, animated, and responsive learning hub.">
+    <meta name="keywords" content="Jenze, study resources, tech resources, education, links, notes library, community, learning, futuristic">
+    <meta name="author" content="Jenze Team">
+    <title>Jenze - Futuristic Learning Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        /* Futuristic Neon Theme */
+        :root {
+            --neon-cyan: #00E5FF;
+            --neon-purple: #D500F9;
+            --neon-pink: #FF4081;
+            --bg-dark: #0A0A23;
+        }
+        body {
+            background: var(--bg-dark);
+            overflow-x: hidden;
+        }
+        /* Custom Animations */
+        @keyframes glow {
+            0% { box-shadow: 0 0 5px var(--neon-cyan); }
+            50% { box-shadow: 0 0 20px var(--neon-cyan), 0 0 30px var(--neon-purple); }
+            100% { box-shadow: 0 0 5px var(--neon-cyan); }
+        }
+        @keyframes float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0); }
+        }
+        .animate-glow { animation: glow 2s infinite; }
+        .animate-float { animation: float 4s infinite ease-in-out; }
+        /* Navbar */
+        .nav-menu {
+            transition: transform 0.5s ease, opacity 0.5s ease;
+            display: none;
+        }
+        .nav-menu.active {
+            display: flex;
+            transform: translateX(0);
+            opacity: 1;
+        }
+        @media (min-width: 768px) {
+            .nav-menu {
+                display: flex;
+            }
+            .hamburger {
+                display: none;
+            }
+        }
+        @media (max-width: 767px) {
+            .nav-menu {
+                position: fixed;
+                top: 0;
+                right: 0;
+                height: 100vh;
+                width: 80%;
+                background: rgba(10, 10, 35, 0.95);
+                backdrop-filter: blur(10px);
+                flex-direction: column;
+                transform: translateX(100%);
+                opacity: 0;
+                padding: 3rem 2rem;
+                z-index: 40;
+            }
+            .nav-menu.active {
+                display: flex;
+            }
+            .nav-menu li {
+                margin: 1.5rem 0;
+            }
+            .hamburger {
+                display: block;
+                z-index: 50;
+            }
+        }
+        /* Smooth Scroll */
+        html { scroll-behavior: smooth; }
+        /* Card Hover */
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-15px);
+            box-shadow: 0 15px 30px rgba(0, 229, 255, 0.3);
+        }
+        /* Holographic Effect */
+        .holo-effect {
+            position: relative;
+            overflow: hidden;
+        }
+        .holo-effect::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(0, 229, 255, 0.1), rgba(213, 0, 249, 0.1));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .holo-effect:hover::before {
+            opacity: 1;
+        }
+        /* Custom Button Styling for Our Links Section */
+        .custom-button {
+            background: linear-gradient(90deg, #00C4B4, #00A3E0);
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            width: 200px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .custom-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 195, 180, 0.3);
+        }
+        .custom-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        .custom-button:hover::before {
+            left: 100%;
+        }
+        .view-more {
+            background: linear-gradient(90deg, #1A3C34, #5ae000);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        @media (max-width: 768px) {
+            .custom-button {
+                font-size: 0.875rem;
+                padding: 0.5rem 1rem;
+                width: 150px;
+                height: 40px;
+            }
+        }
+        /* Search Bar Neon Glow */
+        .search-bar {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .search-bar:focus-within {
+            box-shadow: 0 0 15px var(--neon-cyan), 0 0 25px var(--neon-purple);
+        }
+        /* Mouse Trail */
+        .trail {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            background: var(--neon-cyan);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 50;
+            box-shadow: 0 0 10px var(--neon-cyan);
+            transition: all 0.1s ease;
+        }
+        /* Round and smaller developer image */
+        #developer img {
+            border-radius: 50%;
+            object-fit: cover;
+            width: 192px;
+            height: 192px;
+            margin-bottom: 1.5rem;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        /* Square Notes Library image */
+        #notes img {
+            border-radius: 8px;
+            object-fit: cover;
+            width: 192px;
+            height: 192px;
+            margin-bottom: 1.5rem;
+            border: 2px solid var(--neon-cyan);
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        /* Arrange buttons two-by-two on mobile */
+        @media (max-width: 768px) {
+            #linkButtons {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+            .custom-button.view-more {
+                grid-column: span 2;
+            }
+        }
+    </style>
+</head>
+<body class="font-sans text-white">
+    <!-- Mouse Trail -->
+    <div class="trail"></div>
+
+    <!-- Navbar -->
+    <nav class="bg-black/50 backdrop-blur-md text-white fixed w-full z-30 shadow-2xl">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-4xl font-extrabold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-[var(--neon-cyan)] to-[var(--neon-purple)]">Jenzelinks</a>
+            <div class="hamburger md:hidden cursor-pointer">
+                <i class="fas fa-bars text-3xl transition-transform hover:scale-110"></i>
+                
+            </div>
+           
+            
+            <ul class="nav-menu space-x-10 items-center">
+                <li><a href="#home" class="text-lg font-semibold hover:text-[var(--neon-cyan)] transition">Home</a></li>
+                <li><a href="#about" class="text-lg font-semibold hover:text-[var(--neon-cyan)] transition">About</a></li>
+                <li><a href="#contact" class="text-lg font-semibold hover:text-[var(--neon-cyan)] transition">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section with Particle Background -->
+    <section id="home" class="h-screen flex items-center justify-center text-center relative overflow-hidden">
+        <div id="particles-js" class="absolute inset-0"></div>
+        <div class="relative z-10 space-y-8 animate-float">
+            <h1 class="text-6xl md:text-8xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-[var(--neon-cyan)] to-[var(--neon-purple)]"><img src="image/3b6403cf-46f2-4f0a-aaca-1633ef8e9f1e-removebg-preview (1).png" height="300px" width="500px" alt=""></h1>
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-t from-[var(--bg-dark)]/70 to-transparent"></div>
+    </section>
+
+    <!-- Live Cards Section -->
+    <section id="cards" class="py-24">
+        <div class="container mx-auto px-6">
+            <h2 class="text-5xl md:text-6xl font-bold text-center mb-20 bg-clip-text text-transparent bg-gradient-to-r from-[var(--neon-cyan)] to-[var(--neon-purple)]">WHAT WE PROVIDE</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                <div class="card bg-gray-800/50 backdrop-blur-md p-8 rounded-2xl relative overflow-hidden border border-[var(--neon-cyan)] animate-glow" data-tilt>
+                    <img src="image/3b6403cf-46f2-4f0a-aaca-1633ef8e9f1e.png" alt="Study Records" class="w-full h-64 object-cover rounded-lg mb-6">
+                    <h3 class="text-3xl font-semibold mb-4">Study Records</h3>
+                    <a href="#" class="text-[var(--neon-cyan)] hover:text-[var(--neon-purple)] font-medium">Explore Study Records Links</a>
+                </div>
+                <div class="card bg-gray-800/50 backdrop-blur-md p-8 rounded-2xl relative overflow-hidden border border-[var(--neon-cyan)] animate-glow" data-tilt>
+                    <img src="image/3b6403cf-46f2-4f0a-aaca-1633ef8e9f1e.png" alt="Tech Resources" class="w-full h-64 object-cover rounded-lg mb-6">
+                    <h3 class="text-3xl font-semibold mb-4">Tech Resources</h3>
+                    <a href="#" class="text-[var(--neon-cyan)] hover:text-[var(--neon-purple)] font-medium">Explore Tech Resources Links</a>
+                </div>
+                <div class="card bg-gray-800/50 backdrop-blur-md p-8 rounded-2xl relative overflow-hidden border border-[var(--neon-cyan)] animate-glow" data-tilt>
+                    <img src="image/3b6403cf-46f2-4f0a-aaca-1633ef8e9f1e.png" alt="Education Resources" class="w-full h-64 object-cover rounded-lg mb-6">
+                    <h3 class="text-3xl font-semibold mb-4">Education Resources</h3>
+                    <a href="#" class="text-[var(--neon-cyan)] hover:text-[var(--neon-purple)] font-medium">Explore Education Resources Links</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Our Links Section with Search and Custom Buttons -->
+    <section id="links" class="py-24">
+        <div class="container mx-auto px-6">
+            <h2 class="text-5xl md:text-6xl font-bold text-center mb-20 bg-clip-text text-transparent bg-gradient-to-r from-[var(--neon-cyan)] to-[var(--neon-purple)]">Our Links</h2>
+            <div class="max-w-4xl mx-auto mb-16">
+                <div class="relative search-bar">
+                    <input type="text" id="searchBar" placeholder="Search for resources..." class="w-full p-5 rounded-full bg-gray-800/50 backdrop-blur-md text-white border-2 border-[var(--neon-cyan)] focus:outline-none focus:border-[var(--neon-purple)] transition text-lg">
+                    <i class="fas fa-search absolute right-5 top-1/2 -translate-y-1/2 text-[var(--neon-cyan)]"></i>
+                </div>
+            </div>
+            <div id="linkButtons" class="flex flex-wrap justify-center gap-8 mb-16">
+                <button class="custom-button">Networking Hub</button>
+                <button class="custom-button">Content Sharing</button>
+                <button class="custom-button">Discover Trends</button>
+                <button class="custom-button">Grok AI Tools</button>
+                <button class="custom-button">Graphic Design</button>
+                <button class="custom-button">Web Development</button>
+                <button class="custom-button">Learning Resources</button>
+                <button class="custom-button">Join Community</button>
+                <button  class="custom-button view-more">
+                <a  href="d:\slaman creativitay for webdevelopment usang ai\ai tools web idea\new page for all tools buttons.html">View More  <i class="fas fa-arrow-right"></i></a>      
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Free Important Notes Library -->
+    <section id="notes" class="py-24">
+        <div class="container mx-auto px-6">
+            <h2 class="text-5xl md:text-6xl font-bold text-center mb-20 bg-clip-text text-transparent bg-gradient-to-r from-[var(--neon-cyan)] to-[var(--neon-purple)]">Free Important Notes Library</h2>
+            <div class="max-w-md mx-auto bg-gray-800/50 backdrop-blur-md p-10 rounded-2xl card relative overflow-hidden border border-[var(--neon-cyan)] animate-glow">
+                <img src="image/content sharing2.jpg" alt="Notes Library" class="w-full h-48 object-cover rounded-lg mb-6">
+                <h3 class="text-3xl font-semibold mb-6">Notes Library</h3>
+                <p class="mb-8 text-gray-300 text-lg">Unlock a treasure trove of free, high-quality notes to fuel your learning journey.</p>
+                <a href="d:\slaman creativitay for webdevelopment usang ai\ai tools web idea\pdf page.html" class="bg-[var(--neon-cyan)] text-black px-8 py-4 rounded-full hover:bg-[var(--neon-purple)] hover:text-white transition animate-glow text-lg"> All Notes Library</a>
+            </div>
+        </div>
+    </section>
+
+<!-- meet our deverloer salman khan tareen -->
+<section id="developer" class="py-24">
+    <div class="container mx-auto px-6">
+      <h2 class="text-5xl md:text-6xl font-bold text-center mb-20 bg-clip-text text-transparent bg-gradient-to-r from-[var(--neon-cyan)] to-[var(--neon-purple)]">
+      meet our developer
+      </h2>
+      <div class="max-w-md mx-auto bg-gray-800/50 backdrop-blur-md p-10 rounded-2xl card relative overflow-hidden border border-[var(--neon-cyan)] animate-glow text-center">
+        
+        <!-- ✅ Rounded image -->
+        <img src="image/fivver.png" alt="Notes Library" class="w-40 h-40 object-cover rounded-full mx-auto mb-6 border-4 border-[var(--neon-cyan)] shadow-lg">
+        
+        <h3 class="text-3xl font-semibold mb-4">Jenze Developer</h3>
+        <p class="mb-6 text-gray-300 text-lg"> "Hi, I code Jenzelinks – turning ideas into shareable knowledge."</p>
+        
+        <!-- ✅ Updated button -->
+        <a href="d:\slaman creativitay for webdevelopment usang ai\ai tools web idea\view our developer.html" class="bg-[var(--neon-cyan)] text-black px-8 py-4 rounded-full hover:bg-[var(--neon-purple)] hover:text-white transition animate-glow text-lg inline-block">
+          view profile
+        </a>
+      </div>
+    </div>
+  </section>
+  
+
+    <!-- Stats Section -->
+    <section id="stats" class="py-24">
+        <div class="container mx-auto px-6">
+            <h2 class="text-5xl md:text-6xl font-bold text-center mb-20 bg-clip-text text-transparent bg-gradient-to-r from-[var(--neon-cyan)] to-[var(--neon-purple)]">Our Impact</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-16 text-center">
+                <div class="relative">
+                    <h3 class="text-7xl font-extrabold text-[var(--neon-cyan)] counter" data-target="200">0</h3>
+                    <p class="text-2xl mt-6 text-gray-300">Active Users</p>
+                    <div class="absolute inset-0 bg-[var(--neon-cyan)]/10 rounded-full blur-3xl"></div>
+                </div>
+                <div class="relative">
+                    <h3 class="text-7xl font-extrabold text-[var(--neon-purple)] counter" data-target="204">0</h3>
+                    <p class="text-2xl mt-6 text-gray-300">Current Links</p>
+                    <div class="absolute inset-0 bg-[var(--neon-purple)]/10 rounded-full blur-3xl"></div>
+                </div>
+                <div class="relative">
+                    <h3 class="text-7xl font-extrabold text-[var(--neon-pink)] counter" data-target="10.9">0</h3>
+                    <p class="text-2xl mt-6 text-gray-300">Uptime (%)</p>
+                    <div class="absolute inset-0 bg-[var(--neon-pink)]/10 rounded-full blur-3xl"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Image and Text Section -->
+    <section id="content" class="py-24">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center mb-24">
+                <div class="relative parallax-image">
+                    <img src="image/website image.png" alt="Resource" class="w-full h-96 object-cover rounded-2xl">
+                    <div class="absolute inset-0 bg-gradient-to-t from-[var(--neon-cyan)]/30 to-transparent rounded-2xl"></div>
+                </div>
+                <div>
+                    <h3 class="text-5xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-[var(--neon-cyan)] to-[var(--neon-purple)]">Free AI Tools</h3>
+                    <p class="text-xl text-gray-300">Discover powerful and easy-to-use AI tools for writing, image generation, coding, and more—completely free. Jenzelinks brings you the latest and best AI platforms, all in one place to save you time and boost your productivity..</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+                <div>
+                    <h3 class="text-5xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-[var(--neon-cyan)] to-[var(--neon-purple)]">Free Online websites</h3>
+                    <p class="text-xl text-gray-300">Explore handpicked online courses covering AI, web development, and tech skills—all at no cost. Jenzelinks connects you to trusted learning platforms so you can grow your knowledge without spending a dime.
+
+                        .</p>
+                </div>
+                <div class="relative parallax-image">
+                    <img src="image/ChatGPT Image May 1, 2025, 09_27_09 AM.png" alt="Community" class="w-full h-96 object-cover rounded-2xl">
+                    <div class="absolute inset-0 bg-gradient-to-t from-[var(--neon-purple)]/30 to-transparent rounded-2xl"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="footer" class="bg-gradient-to-b from-[var(--bg-dark)] to-black text-white py-20 relative">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-16">
+                <div>
+                    <h3 class="text-4xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-[var(--neon-cyan)] to-[var(--neon-purple)]">Jenze</h3>
+                    <p class="text-gray-300 text-lg">Your futuristic hub for learning, innovation, and community.</p>
+                </div>
+                <div>
+                    <h3 class="text-3xl font-semibold mb-8 text-[var(--neon-cyan)]">Quick Links</h3>
+                    <ul class="space-y-4">
+                        <li><a href="#home" class="hover:text-[var(--neon-cyan)] transition text-lg">Home</a></li>
+                        <li><a href="#about" class="hover:text-[var(--neon-cyan)] transition text-lg">About</a></li>
+                        <li><a href="#contact" class="hover:text-[var(--neon-cyan)] transition text-lg">Contact</a></li>
+                        <li><a href="#" class="hover:text-[var(--neon-cyan)] transition text-lg">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-[var(--neon-cyan)] transition text-lg">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-3xl font-semibold mb-8 text-[var(--neon-cyan)]">Contact Us</h3>
+                    <p class="text-gray-300 mb-4 text-lg">Email: contact@jenze.com</p>
+                    <p class="text-gray-300 mb-4 text-lg">Phone: +1 (555) 123-4567</p>
+                    <p class="text-gray-300 text-lg">Address: 123 Learning Lane, Tech City</p>
+                </div>
+                <div>
+                    <h3 class="text-3xl font-semibold mb-8 text-[var(--neon-cyan)]">Follow Us</h3>
+                    <div class="flex space-x-8">
+                        <a href="#" class="hover:text-[var(--neon-cyan)] transition"><i class="fab fa-facebook-f text-3xl"></i></a>
+                        <a href="#" class="hover:text-[var(--neon-cyan)] transition"><i class="fab fa-twitter text-3xl"></i></a>
+                        <a href="#" class="hover:text-[var(--neon-cyan)] transition"><i class="fab fa-instagram text-3xl"></i></a>
+                        <a href="#" class="hover:text-[var(--neon-cyan)] transition"><i class="fab fa-linkedin-in text-3xl"></i></a>
+                    </div>
+                </div>
+            </div>
+            <p class="text-center mt-16 text-gray-300 text-lg">© 2025 Jenze. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize GSAP ScrollTrigger
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Navbar Toggle
+        const hamburger = document.querySelector('.hamburger');
+        const navMenu = document.querySelector('.nav-menu');
+        const body = document.body;
+
+        hamburger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            navMenu.classList.toggle('active');
+            const icon = hamburger.querySelector('i');
+            icon.classList.toggle('fa-bars');
+            icon.classList.toggle('fa-times');
+            gsap.to(navMenu, {
+                duration: 0.5,
+                x: navMenu.classList.contains('active') ? 0 : '100%',
+                opacity: navMenu.classList.contains('active') ? 1 : 0,
+                ease: 'power2.out'
+            });
+            body.style.overflow = navMenu.classList.contains('active') ? 'hidden' : '';
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (navMenu.classList.contains('active') && !navMenu.contains(e.target) && !hamburger.contains(e.target)) {
+                navMenu.classList.remove('active');
+                const icon = hamburger.querySelector('i');
+                icon.classList.add('fa-bars');
+                icon.classList.remove('fa-times');
+                gsap.to(navMenu, {
+                    duration: 0.5,
+                    x: '100%',
+                    opacity: 0,
+                    ease: 'power2.out'
+                });
+                body.style.overflow = '';
+            }
+        });
+
+        // Close menu when clicking a link
+        navMenu.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                navMenu.classList.remove('active');
+                const icon = hamburger.querySelector('i');
+                icon.classList.add('fa-bars');
+                icon.classList.remove('fa-times');
+                gsap.to(navMenu, {
+                    duration: 0.5,
+                    x: '100%',
+                    opacity: 0,
+                    ease: 'power2.out'
+                });
+                body.style.overflow = '';
+            });
+        });
+
+        // Particles.js for Hero Background
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 80, density: { enable: true, value_area: 800 } },
+                color: { value: ['#00E5FF', '#D500F9', '#FF4081'] },
+                shape: { type: 'circle' },
+                opacity: { value: 0.5, random: true },
+                size: { value: 3, random: true },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: '#00E5FF',
+                    opacity: 0.4,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 2,
+                    direction: 'none',
+                    random: false,
+                    straight: false,
+                    out_mode: 'out',
+                    bounce: false
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: { enable: true, mode: 'repulse' },
+                    onclick: { enable: true, mode: 'push' },
+                    resize: true
+                }
+            },
+            retina_detect: true
+        });
+
+        // Mouse Trail Effect
+        const trail = document.querySelector('.trail');
+        document.addEventListener('mousemove', (e) => {
+            gsap.to(trail, {
+                x: e.clientX,
+                y: e.clientY,
+                duration: 0.2,
+                ease: 'power2.out'
+            });
+        });
+
+        // Search Functionality for Custom Buttons
+        const searchBar = document.getElementById('searchBar');
+        const linkButtons = document.getElementById('linkButtons');
+        const buttons = linkButtons.querySelectorAll('.custom-button');
+
+        searchBar.addEventListener('input', () => {
+            const query = searchBar.value.toLowerCase();
+            buttons.forEach(button => {
+                const text = button.textContent.toLowerCase();
+                button.style.display = text.includes(query) ? 'inline-flex' : 'none';
+                if (text.includes(query)) {
+                    linkButtons.prepend(button);
+                    gsap.from(button, { duration: 0.5, y: 30, opacity: 0, ease: 'power2.out' });
+                }
+            });
+        });
+
+        // GSAP Hover Animation for Custom Buttons
+        document.querySelectorAll('.custom-button').forEach(button => {
+            button.addEventListener('mouseenter', () => {
+                gsap.to(button, {
+                    scale: 1.05,
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            });
+            button.addEventListener('mouseleave', () => {
+                gsap.to(button, {
+                    scale: 1,
+                    duration: 0.3,
+                    ease: 'power2.out'
+                });
+            });
+        });
+
+        // Counter Animation
+        const counters = document.querySelectorAll('.counter');
+        counters.forEach(counter => {
+            gsap.to(counter, {
+                scrollTrigger: {
+                    trigger: counter,
+                    start: 'top 85%',
+                },
+                innerText: counter.getAttribute('data-target'),
+                duration: 2.5,
+                ease: 'power1.out',
+                snap: { innerText: 0.01 },
+                onUpdate: function () {
+                    counter.innerText = parseFloat(counter.innerText).toFixed(counter.getAttribute('data-target').includes('.') ? 2 : 0);
+                }
+            });
+        });
+
+        // Vanilla Tilt for Cards
+        VanillaTilt.init(document.querySelectorAll('[data-tilt]'), {
+            max: 15,
+            speed: 400,
+            glare: true,
+            'max-glare': 0.5
+        });
+
+        // GSAP Animations
+        gsap.from('.nav-menu li', {
+            duration: 1,
+            y: -40,
+            opacity: 0,
+            stagger: 0.2,
+            delay: 0.5
+        });
+
+        gsap.utils.toArray('.card').forEach(card => {
+            gsap.from(card, {
+                scrollTrigger: {
+                    trigger: card,
+                    start: 'top 85%',
+                },
+                duration: 1.2,
+                scale: 0.85,
+                opacity: 0,
+                ease: 'back.out(1.7)'
+            });
+        });
+
+        gsap.utils.toArray('h2, h3:not(.counter), p, a:not(.custom-button)').forEach(elem => {
+            gsap.from(elem, {
+                scrollTrigger: {
+                    trigger: elem,
+                    start: 'top 85%',
+                },
+                duration: 1,
+                y: 50,
+                opacity: 0,
+                ease: 'power2.out'
+            });
+        });
+
+        gsap.utils.toArray('.parallax-image').forEach(img => {
+            gsap.to(img, {
+                scrollTrigger: {
+                    trigger: img,
+                    start: 'top bottom',
+                    end: 'bottom top',
+                    scrub: true
+                },
+                y: '20%',
+                ease: 'none'
+            });
+        });
+
+        gsap.utils.toArray('.custom-button').forEach(button => {
+            gsap.from(button, {
+                scrollTrigger: {
+                    trigger: button,
+                    start: 'top 85%',
+                },
+                duration: 1,
+                y: 30,
+                opacity: 0,
+                stagger: 0.1,
+                ease: 'power2.out'
+            });
+        });
+    </script>
+</body>
+</html>
